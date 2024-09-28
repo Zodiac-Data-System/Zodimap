@@ -52,7 +52,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  final int _counter = 0;
   LatLng _initialPosition = LatLng(0, 0); // Default to London
   bool _locationFetched = false;
   Location location = Location();
