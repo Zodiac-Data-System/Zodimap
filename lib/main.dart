@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
+
 import 'dart:ui'; // Import the dart:ui library for ImageFilter
 
 void main() {
@@ -44,7 +45,8 @@ class MyApp extends StatelessWidget {
 class CustomButton extends StatelessWidget {
   final String platform;
   final VoidCallback onPressed;
-  const CustomButton({super.key, required this.platform, required this.onPressed});
+  const CustomButton(
+      {super.key, required this.platform, required this.onPressed});
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -65,7 +67,6 @@ class CustomButton extends StatelessWidget {
     ]));
   }
 }
-
 
 // class MarkerWithTooltip extends StatefulWidget {
 //   final Widget child;
@@ -107,7 +108,8 @@ class MyHomePage extends StatefulWidget {
   //State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
+class _MyHomePageState extends State<MyHomePage>
+    with SingleTickerProviderStateMixin {
   final int _counter = 0;
   LatLng _initialPosition = LatLng(34.036, -117.850); // Default to London
   bool _locationFetched = false;
@@ -117,11 +119,15 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   bool _isPanelVisible = false;
   String _panelTitle = '';
   String _panelDescription = '';
+  late Animation<double> _animation;
+  late MapController _mapController;
+  double currentZoom = 9.2;
+  LatLng currentCenter = LatLng(51.5, -0.09);
 
   @override
   void initState() {
     super.initState();
-      _controller = AnimationController(
+    _controller = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
@@ -130,8 +136,17 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _controller!,
-      curve: Curves.easeInOut,
+      curve: Curves.easeInOutExpo,
     ));
+    _mapController = MapController();
+    _animation = CurvedAnimation(
+      parent: _controller as AnimationController,
+      curve: Curves.easeInOutCubicEmphasized,
+    );
+//    _animation = Tween<double>(begin: 0, end: 1).animate(_controller as Animation<double>)
+//      ..addListener(() {
+//        setState(() {});
+//      });
     _getCurrentLocation();
     location.onLocationChanged.listen((LocationData currentLocation) {
       setState(() {
@@ -173,7 +188,6 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     });
   }
 
-
   @override
   void dispose() {
     _controller?.dispose();
@@ -197,6 +211,28 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     });
   }
 
+  void _zoomIn() {
+    currentZoom = currentZoom + 1;
+    _mapController.move(currentCenter, currentZoom);
+  }
+
+  void _zoomOut() {
+    currentZoom = currentZoom - 1;
+    _mapController.move(currentCenter, currentZoom);
+  }
+
+  void _resetOrientation() {
+    currentZoom = 9.2;
+    currentCenter = LatLng(51.5, -0.09);
+    _mapController.move(currentCenter, currentZoom);
+  }
+
+  void _updateCurrentCenter(LatLng position) {
+    setState(() {
+      currentCenter = position;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final markers = [
@@ -209,8 +245,19 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
             print("Marker tapped");
             _showMarkerInfo("Marker 2", "This is marker 2.");
           },
-          child: Icon(Icons.location_on, color: Colors.red, size: 40),
-        ),),
+          child: AnimatedBuilder(
+            animation: _animation,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: 1 + _animation.value * 0.5, // Scale the marker
+                child: child,
+                alignment: Alignment.bottomCenter,
+              );
+            },
+            child: Icon(Icons.location_on, color: Colors.red, size: 40),
+          ),
+        ),
+      ),
       Marker(
         width: 80.0,
         height: 80.0,
@@ -244,15 +291,25 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
       body: Stack(
         children: [
           FlutterMap(
+            mapController: _mapController,
             options: MapOptions(
               initialCenter: _initialPosition,
-              initialZoom: 9.2,
+              initialZoom: currentZoom,
+              onMapEvent: (mapEvent) {
+                if (mapEvent is MapEventMove) {
+                  currentCenter = mapEvent.camera.center;
+                }
+              },
+              onTap: (tapPosition, point) {
+                print(point);
+              },
             ),
             children: [
               TileLayer(
                 // Display map tiles from any source
                 urlTemplate:
                     'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // OSMF's Tile Server
+
                 userAgentPackageName: 'com.example.app',
                 // And many more recommended properties!
               ),
@@ -287,12 +344,30 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
                     centerTitle: false,
                     backgroundColor: const Color.fromARGB(0, 255, 255, 255)
                         .withOpacity(0.5), // Semi-transparent background
+                    actions: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: Center(
+                          child: Row(
+                            children: [
+                              Text('Hi, \$User'),
+                              SizedBox(
+                                  width:
+                                      8.0), // Space between text and profile picture
+                              CircleAvatar(
+                                backgroundColor: Colors.grey,
+                                child: Icon(Icons.person, color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
           ),
-          
           if (_isPanelVisible)
             Positioned(
               top: 80,
@@ -310,10 +385,12 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
                     child: Container(
-                      width: MediaQuery.of(context).size.width * 0.3, // 30% of screen width
+                      width: MediaQuery.of(context).size.width *
+                          0.3, // 30% of screen width
                       padding: EdgeInsets.all(16.0),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1), // Semi-transparent background
+                        color: Colors.white
+                            .withOpacity(0.1), // Semi-transparent background
                         borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(16.0),
                           bottomLeft: Radius.circular(16.0),
@@ -331,7 +408,8 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
                         children: [
                           Text(
                             _panelTitle,
-                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontSize: 24, fontWeight: FontWeight.bold),
                           ),
                           SizedBox(height: 8.0),
                           Text(_panelDescription),
@@ -350,6 +428,76 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
                 ),
               ),
             ),
+          Positioned(
+            bottom: 8,
+            right: 40,
+            child: Row(
+              children: [
+                MapButton(icon: Icons.zoom_in, onPressed: _zoomIn),
+                SizedBox(width: 8),
+                MapButton(icon: Icons.zoom_out, onPressed: _zoomOut),
+                SizedBox(width: 8),
+                MapButton(icon: Icons.refresh, onPressed: _resetOrientation),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class MapButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  const MapButton({
+    Key? key,
+    required this.icon,
+    required this.onPressed,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.white.withOpacity(0), Colors.grey.shade300.withOpacity(0)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+
+                  ),
+                
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color.fromARGB(66, 175, 172, 172),
+                      blurRadius: 4,
+                      offset: Offset(2, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Center(
+            child: FloatingActionButton(
+              onPressed: onPressed,
+              child: Icon(icon, size: 20),
+              backgroundColor: Colors.transparent,
+              foregroundColor: Colors.black,
+              elevation: 0,
+            ),
+          ),
         ],
       ),
     );
