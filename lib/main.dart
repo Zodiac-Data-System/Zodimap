@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
 import 'package:flutter_map_animations/flutter_map_animations.dart';
@@ -110,7 +111,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final int _counter = 0;
   LatLng _initialPosition = LatLng(34.036, -117.850); // Default to London
   bool _locationFetched = false;
@@ -124,6 +125,7 @@ class _MyHomePageState extends State<MyHomePage>
   late MapController _mapController;
   double currentZoom = 9.2;
   LatLng currentCenter = LatLng(51.5, -0.09);
+
   late final _animatedMapController = AnimatedMapController(vsync: this);
   bool _useTransformer = true;
   int _lastMovedToMarkerIndex = -1;
@@ -218,12 +220,26 @@ class _MyHomePageState extends State<MyHomePage>
 
   void _zoomIn() {
     currentZoom = currentZoom + 1;
-    _mapController.move(currentCenter, currentZoom);
+    _animatedMapController.animateTo(
+      curve: Curves.easeInOut,
+      customId: _useTransformer ? _useTransformerId : null,
+      dest: currentCenter,
+      zoom: currentZoom,
+      duration: Duration(milliseconds: 500),
+    );
+    //_mapController.move(currentCenter, currentZoom);
   }
 
   void _zoomOut() {
     currentZoom = currentZoom - 1;
-    _mapController.move(currentCenter, currentZoom);
+    _animatedMapController.animateTo(
+      curve: Curves.easeInOut,
+      customId: _useTransformer ? _useTransformerId : null,
+      dest: currentCenter,
+      zoom: currentZoom,
+      duration: Duration(milliseconds: 500),
+    );
+    //_mapController.move(currentCenter, currentZoom);
   }
 
   void _resetOrientation() {
@@ -248,7 +264,12 @@ class _MyHomePageState extends State<MyHomePage>
         child: GestureDetector(
           onTap: () {
             print("Marker tapped");
-            _mapController.move(LatLng(34.036,-117.850), 15.0);
+            _animatedMapController.animateTo(
+              dest: LatLng(34.036, -117.850),
+              zoom: 15.0,
+              customId: _useTransformer ? _useTransformerId : null,
+              duration: Duration(milliseconds: 500),
+            );
             currentZoom = 15.0;
             _showMarkerInfo("Marker 2", "This is marker 2.");
           },
@@ -298,10 +319,12 @@ class _MyHomePageState extends State<MyHomePage>
       body: Stack(
         children: [
           FlutterMap(
-            mapController: _mapController,
+            mapController: _animatedMapController.mapController,
             options: MapOptions(
               initialCenter: _initialPosition,
               initialZoom: currentZoom,
+              interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag),
               onMapEvent: (mapEvent) {
                 if (mapEvent is MapEventMove) {
                   currentCenter = mapEvent.camera.center;
@@ -319,6 +342,8 @@ class _MyHomePageState extends State<MyHomePage>
                     'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // OSMF's Tile Server
 
                 userAgentPackageName: 'com.example.app',
+                tileUpdateTransformer: _animatedMoveTileUpdateTransformer,
+                tileProvider: CancellableNetworkTileProvider(),
                 // And many more recommended properties!
               ),
               MarkerLayer(
@@ -512,3 +537,37 @@ class MapButton extends StatelessWidget {
     );
   }
 }
+
+/// Inspired by the contribution of [rorystephenson](https://github.com/fleaflet/flutter_map/pull/1475/files#diff-b663bf9f32e20dbe004bd1b58a53408aa4d0c28bcc29940156beb3f34e364556)
+final _animatedMoveTileUpdateTransformer = TileUpdateTransformer.fromHandlers(
+  handleData: (updateEvent, sink) {
+    final id = AnimationId.fromMapEvent(updateEvent.mapEvent);
+
+    if (id == null) return sink.add(updateEvent);
+    if (id.customId != _MyHomePageState._useTransformerId) {
+      if (id.moveId == AnimatedMoveId.started) {
+        debugPrint('TileUpdateTransformer disabled, using default behaviour.');
+      }
+      return sink.add(updateEvent);
+    }
+
+    switch (id.moveId) {
+      case AnimatedMoveId.started:
+        debugPrint('Loading tiles at animation destination.');
+        sink.add(
+          updateEvent.loadOnly(
+            loadCenterOverride: id.destLocation,
+            loadZoomOverride: id.destZoom,
+          ),
+        );
+        break;
+      case AnimatedMoveId.inProgress:
+        // Do not prune or load during movement.
+        break;
+      case AnimatedMoveId.finished:
+        debugPrint('Pruning tiles after animated movement.');
+        sink.add(updateEvent.pruneOnly());
+        break;
+    }
+  },
+);
