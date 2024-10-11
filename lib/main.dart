@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
-
+import 'package:flutter_map_animations/flutter_map_animations.dart';
+//import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider';
 import 'dart:ui'; // Import the dart:ui library for ImageFilter
 
 void main() {
@@ -123,6 +124,10 @@ class _MyHomePageState extends State<MyHomePage>
   late MapController _mapController;
   double currentZoom = 9.2;
   LatLng currentCenter = LatLng(51.5, -0.09);
+  late final _animatedMapController = AnimatedMapController(vsync: this);
+  bool _useTransformer = true;
+  int _lastMovedToMarkerIndex = -1;
+  static const _useTransformerId = 'useTransformerId';
 
   @override
   void initState() {
@@ -243,6 +248,8 @@ class _MyHomePageState extends State<MyHomePage>
         child: GestureDetector(
           onTap: () {
             print("Marker tapped");
+            _mapController.move(LatLng(34.036,-117.850), 15.0);
+            currentZoom = 15.0;
             _showMarkerInfo("Marker 2", "This is marker 2.");
           },
           child: AnimatedBuilder(
@@ -301,7 +308,8 @@ class _MyHomePageState extends State<MyHomePage>
                 }
               },
               onTap: (tapPosition, point) {
-                print(point);
+                //print(point);
+                _hideMarkerInfo();
               },
             ),
             children: [
@@ -471,12 +479,13 @@ class MapButton extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.white.withOpacity(0), Colors.grey.shade300.withOpacity(0)],
+                    colors: [
+                      Colors.white.withOpacity(0),
+                      Colors.grey.shade300.withOpacity(0)
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-
                   ),
-                
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
