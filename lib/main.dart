@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
@@ -110,8 +112,7 @@ class MyHomePage extends StatefulWidget {
   //State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage>
-    with TickerProviderStateMixin {
+class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   final int _counter = 0;
   LatLng _initialPosition = LatLng(34.036, -117.850); // Default to London
   bool _locationFetched = false;
@@ -130,6 +131,10 @@ class _MyHomePageState extends State<MyHomePage>
   bool _useTransformer = true;
   int _lastMovedToMarkerIndex = -1;
   static const _useTransformerId = 'useTransformerId';
+
+  List<Marker> markers = [];
+
+  Marker? _selectedMarker;
 
   @override
   void initState() {
@@ -161,6 +166,9 @@ class _MyHomePageState extends State<MyHomePage>
             LatLng(currentLocation.latitude!, currentLocation.longitude!);
       });
     });
+    final int markerCount =
+        Random().nextInt(10) + 5; // Random number of markers between 1 and 10
+    markers = _generateRandomMarkers(markerCount);
   }
 
   Future<void> _getCurrentLocation() async {
@@ -254,8 +262,73 @@ class _MyHomePageState extends State<MyHomePage>
     });
   }
 
+  List<Marker> _generateRandomMarkers(int count) {
+    final Random random = Random();
+    final List<Marker> markers = [];
+
+    for (int i = 0; i < count; i++) {
+      bool posneg = random.nextBool();
+      double lat = 34.036;
+      double lng = -117.850;
+
+      if (posneg) {
+        lat =
+            34.036 + random.nextDouble() * 0.2; // Latitude range around LA
+        lng =
+            -117.850 + random.nextDouble() * 0.5; // Longitude range around LA
+      } else {
+        lat =
+          34.036 - random.nextDouble() * 0.2; // Latitude range around LA
+        lng =
+          -117.850 - random.nextDouble() * 0.5; // Longitude range around LA
+      }
+
+      markers.add(
+        Marker(
+          width: 80.0,
+          height: 80.0,
+          point: LatLng(lat, lng),
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedMarker = markers[i];
+                _controller?.reset();
+                _controller?.forward();
+              });
+              print("Marker tapped");
+              _animatedMapController.animateTo(
+                dest: LatLng(lat, lng),
+                zoom: 15.0,
+                duration: Duration(milliseconds: 500),
+              );
+              currentZoom = 15.0;
+              _showMarkerInfo("Marker $i", "This is marker $i.");
+            },
+            child: AnimatedBuilder(
+              animation: _animation,
+              builder: (context, child) {
+                return Transform.scale(
+                  //scale: 1 + _animation.value * 0.5, // Scale the marker
+                  scale: _selectedMarker == markers[i]
+                      ? 1 + _animation.value * 0.5
+                      : 1,
+                  child: child,
+                  alignment: Alignment.bottomCenter,
+                );
+              },
+              child: Icon(Icons.location_on, color: Colors.red, size: 40),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return markers;
+  }
+
   @override
   Widget build(BuildContext context) {
+/*    
     final markers = [
       Marker(
         width: 80.0,
@@ -295,6 +368,7 @@ class _MyHomePageState extends State<MyHomePage>
       ),
       // Add more markers here
     ];
+    */
 
     return Scaffold(
       // appBar: PreferredSize(
