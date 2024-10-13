@@ -7,7 +7,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
 import 'package:flutter_map_animations/flutter_map_animations.dart';
 //import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider';
-import 'dart:ui'; // Import the dart:ui library for ImageFilter
+import 'dart:ui';
+
+import 'package:zodimap/mappopup.dart'; // Import the dart:ui library for ImageFilter
 
 void main() {
   runApp(const MyApp());
@@ -398,7 +400,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               initialCenter: _initialPosition,
               initialZoom: currentZoom,
               interactionOptions: const InteractionOptions(
-                  flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag),
+                  flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag | InteractiveFlag.scrollWheelZoom),
               onMapEvent: (mapEvent) {
                 if (mapEvent is MapEventMove) {
                   currentCenter = mapEvent.camera.center;
@@ -482,57 +484,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               right: 30,
               child: SlideTransition(
                 position: _offsetAnimation!,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(16.0),
-                    bottomLeft: Radius.circular(16.0),
-                    bottomRight: Radius.circular(16.0),
-                    topRight: Radius.circular(16.0),
-                  ),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                    child: Container(
-                      width: MediaQuery.of(context).size.width *
-                          0.3, // 30% of screen width
-                      padding: EdgeInsets.all(16.0),
-                      decoration: BoxDecoration(
-                        color: Colors.white
-                            .withOpacity(0.1), // Semi-transparent background
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(16.0),
-                          bottomLeft: Radius.circular(16.0),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 10.0,
-                            spreadRadius: 5.0,
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _panelTitle,
-                            style: TextStyle(
-                                fontSize: 24, fontWeight: FontWeight.bold),
-                          ),
-                          SizedBox(height: 8.0),
-                          Text(_panelDescription),
-                          SizedBox(height: 16.0),
-                          ElevatedButton(
-                            onPressed: () {
-                              // Add your button action here
-                              _hideMarkerInfo();
-                            },
-                            child: Text('Interact with Marker'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                child: Popup(runOnPressed: () { _hideMarkerInfo();}, eventTitle: _panelTitle, eventDescription: _panelDescription, eventAddress: "20752 E Walnut Canyon Rd", eventDate: "October 12th, 2024", eventTimes: "10:30AM-12:30PM, 2.0 hours", eventApprover: "Fiona Xu")
               ),
             ),
           Positioned(
