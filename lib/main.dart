@@ -121,9 +121,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   Location location = Location();
   AnimationController? _controller;
   Animation<Offset>? _offsetAnimation;
-  bool _isPanelVisible = false;
-  String _panelTitle = '';
-  String _panelDescription = '';
+  bool _isEventVisible = false;
+  String _eventTitle = '';
+  String _eventDescription = '';
+  String _eventAddress = ' ';
+  String _eventDate = ' ';
+  String _eventTimes = ' ';
+  String _eventApprover = ' ';
   late Animation<double> _animation;
   late MapController _mapController;
   double currentZoom = 9.2;
@@ -211,11 +215,15 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void _showMarkerInfo(String title, String description) {
+  void _showMarkerInfo(String title, String description, String address, String date, String times, String approver) {
     setState(() {
-      _panelTitle = title;
-      _panelDescription = description;
-      _isPanelVisible = true;
+      _eventTitle = title;
+      _eventDescription = description;
+      _eventAddress = address;
+      _eventDate = date;
+      _eventTimes = times;
+      _eventApprover = approver;
+      _isEventVisible = true;
     });
     _controller?.forward();
   }
@@ -223,7 +231,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   void _hideMarkerInfo() {
     _controller?.reverse().then((_) {
       setState(() {
-        _isPanelVisible = false;
+        _isEventVisible = false;
       });
     });
   }
@@ -268,21 +276,21 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     final Random random = Random();
     final List<Marker> markers = [];
 
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < 6; i++) {
       bool posneg = random.nextBool();
       double lat = 34.036;
       double lng = -117.850;
 
       if (posneg) {
         lat =
-            34.036 + random.nextDouble() * 0.2; // Latitude range around LA
+            34.036 + random.nextDouble() * 0.02; // Latitude range around walnut
         lng =
-            -117.850 + random.nextDouble() * 0.5; // Longitude range around LA
+            -117.850 + random.nextDouble() * 0.035; // Longitude range around walnut
       } else {
         lat =
-          34.036 - random.nextDouble() * 0.2; // Latitude range around LA
+          34.036 - random.nextDouble() * 0.02; // Latitude range around walnut
         lng =
-          -117.850 - random.nextDouble() * 0.5; // Longitude range around LA
+          -117.850 - random.nextDouble() * 0.035; // Longitude range around walnut
       }
 
       markers.add(
@@ -304,7 +312,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 duration: Duration(milliseconds: 500),
               );
               currentZoom = 15.0;
-              _showMarkerInfo("Marker $i", "This is marker $i.");
+              _showMarkerInfo("Marker $i", "This is marker $i.", "123 Sesame Street", "October 13th, 2024", "2:00PM-4:00PM", "Derek Chang" );
             },
             child: AnimatedBuilder(
               animation: _animation,
@@ -324,7 +332,86 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         ),
       );
     }
-
+    markers.add(
+        Marker(
+          width: 80.0,
+          height: 80.0,
+          point: LatLng(34.03681014225593, -117.85032157566803),
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedMarker = markers[6];
+                _controller?.reset();
+                _controller?.forward();
+              });
+              print("Marker tapped");
+              _animatedMapController.animateTo(
+                dest: LatLng(34.03681014225593, -117.85032157566803),
+                zoom: 15.0,
+                duration: Duration(milliseconds: 500),
+              );
+              currentZoom = 15.0;
+              _showMarkerInfo("Application Developement", 
+              "Join the Zodiac App Development Team for a progress update on ZodiApp, the volunteer-focused extension of their Zodiac Data Management System. The team will review recent project milestones, present a demo of new app features, and discuss challenges encountered during the development process. Future plans and upcoming goals will also be outlined, followed by an open Q&A session for feedback and insights.", 
+              "20752 E Walnut Canyon Rd, Walnut, 91789", "October 12th, 2024", "9:30AM-12:30PM", "Fiona Xu" );
+            },
+            child: AnimatedBuilder(
+              animation: _animation,
+              builder: (context, child) {
+                return Transform.scale(
+                  //scale: 1 + _animation.value * 0.5, // Scale the marker
+                  scale: _selectedMarker == markers[6]
+                      ? 1 + _animation.value * 0.5
+                      : 1,
+                  child: child,
+                  alignment: Alignment.bottomCenter,
+                );
+              },
+              child: Icon(Icons.location_on, color: Colors.red, size: 40),
+            ),
+          ),
+        ),
+      );
+      markers.add(
+        Marker(
+          width: 80.0,
+          height: 80.0,
+          point: LatLng(34.02215, -117.8507),
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedMarker = markers[7];
+                _controller?.reset();
+                _controller?.forward();
+              });
+              print("Marker tapped");
+              _animatedMapController.animateTo(
+                dest: LatLng(34.02215, -117.8507),
+                zoom: 15.0,
+                duration: Duration(milliseconds: 500),
+              );
+              currentZoom = 15.0;
+              _showMarkerInfo("Clothing Drive", 
+              "Join us for the annual Fall Clothing Drive, where we’ll be collecting gently used clothing items for local shelters in need. We accept coats, sweaters, gloves, scarves, and other winter essentials to help provide warmth and comfort to individuals facing difficult times. All donations will go directly to shelters serving families and individuals in the community. Drop-off stations will be available throughout the event, and volunteers will be on hand to assist.", 
+              "400 Pierre Rd, Walnut, 91789", "October 23rd, 2024", "1:30PM-3:30PM", "John Yang" );
+            },
+            child: AnimatedBuilder(
+              animation: _animation,
+              builder: (context, child) {
+                return Transform.scale(
+                  //scale: 1 + _animation.value * 0.5, // Scale the marker
+                  scale: _selectedMarker == markers[7]
+                      ? 1 + _animation.value * 0.5
+                      : 1,
+                  child: child,
+                  alignment: Alignment.bottomCenter,
+                );
+              },
+              child: Icon(Icons.location_on, color: Colors.red, size: 40),
+            ),
+          ),
+        ),
+      );
     return markers;
   }
 
@@ -477,14 +564,14 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               ),
             ),
           ),
-          if (_isPanelVisible)
+          if (_isEventVisible)
             Positioned(
               top: 80,
               bottom: 50,
               right: 30,
               child: SlideTransition(
                 position: _offsetAnimation!,
-                child: Popup(runOnPressed: () { _hideMarkerInfo();}, eventTitle: _panelTitle, eventDescription: _panelDescription, eventAddress: "20752 E Walnut Canyon Rd", eventDate: "October 12th, 2024", eventTimes: "10:30AM-12:30PM, 2.0 hours", eventApprover: "Fiona Xu")
+                child: Popup(runOnPressed: () { _hideMarkerInfo();}, eventTitle: _eventTitle, eventDescription: _eventDescription, eventAddress: _eventAddress, eventDate: _eventDate, eventTimes: _eventTimes, eventApprover: _eventApprover)
               ),
             ),
           Positioned(

@@ -30,10 +30,10 @@ class Popup extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
         child: Container(
           //width: MediaQuery.of(context).size.width * 0.3, // 30% of screen width
-          width: 450,
+          width: 475,
           padding: EdgeInsets.all(16.0),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1), // Semi-transparent background
+            color: const Color.fromARGB(255, 212, 205, 205).withOpacity(.5), // Semi-transparent background
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(16.0),
               bottomLeft: Radius.circular(16.0),
@@ -97,10 +97,13 @@ class Popup extends StatelessWidget {
                   
                 )
               ),
-              SizedBox(height: 16.0),
+              SizedBox(height: 8.0),
               Text("Event Description", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               SizedBox(height: 8.0),
-              Text(eventDescription, style: TextStyle(fontSize: 16,)),
+              Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text(eventDescription, style: TextStyle(fontSize: 16,))
+              ),
               SizedBox(height: 16.0),
               Align(
                 alignment: Alignment.bottomCenter,
